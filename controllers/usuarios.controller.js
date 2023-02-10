@@ -1,6 +1,9 @@
 const {response, request} = require("express")
+const bcryptjs = require("bcryptjs")
+const Usuario = require("../models/usuarios")
 
-const usuariosGet = (req = request,res = response ) => {
+
+const usuariosGet = async (req = request,res = response ) => {
     
     //*si la url tengo PARAMETROS OPCIONALES
     //http://localhost:8080/api/usuarios?q=hola&page=10&limit=10
@@ -8,38 +11,76 @@ const usuariosGet = (req = request,res = response ) => {
     //*si la url tiene PARAMETROS OBLIGATORIOS
     //http://localhost:8080/api/usuarios/10
     //los obtengo desde el req.params
-    const {q = "sinNombre", page = 1, limit = 10} = req.query
+    //const {q = "sinNombre", page = 1, limit = 10} = req.query
+    const {limite = 5, desde = 0} = req.query
+
+   //emitir 2 solicitudes asincronas de manera concurrente
+    const [usuarios, total] = await Promise.all([
+        Usuario.find({estado:true}),
+        Usuario.count({estado:true})
+                .skip(Number(desde))
+                .limit(Number(limite))
+    ])
+
+
     res.json({
-        'msg': "get api - controlador",
-        q,
-        page,
-        limit
+        usuarios,
+        total
     })
 }
 
-const usuariosPut = (req,res= response ) => {
+const usuariosPut = async (req,res= response ) => {
     
-    const id = req.params.id
-    res.json({
-        'msg': "put api - controlador",
-        id
+    const {id} = req.params
+    const {_id, password, google, correo, ...resto} = req.body
 
-    })
+    //TODO validar contra BD
+    if(password){
+        //encriptar la contraseña
+        const salt = bcryptjs.genSaltSync()
+        resto.password = bcryptjs.hashSync(password, salt)
+    }
+    //lo q sea q mande, lo voy a actualizar en la BD
+    const usuario = await Usuario.findByIdAndUpdate(id, resto); 
+
+    res.json( usuario)
 }
 
-const usuariosPost = (req,res = response) => {
-    const {nombre, edad} = req.body
+const usuariosPost = async  (req,res = response) => {
+    //manejo de errores
+    
+
+    const {nombre, correo, password, rol} = req.body
+    const usuario = new Usuario({nombre, correo, password, rol})
+
+    //verificar si el correo existe
+    const existeEmail = await Usuario.findOne({correo});
+    if(existeEmail){
+        return res.status(400).json({
+            msg: "El correo ya esta Registrado"
+        })
+    }
+    //encriptar la contraseña
+    const salt = bcryptjs.genSaltSync()
+    usuario.password = bcryptjs.hashSync(password, salt)
+    //guardar en base de datos
+
+    await usuario.save(); 
+    
     res.status(201).json({
-        'msg': "post api - controlador",
-        nombre,
-        edad,
+        
+        usuario
     })
 }
 
-const usuariosDelete = (req,res = response) => {
-    res.json({
-        'msg': "delete api - controlador"
-    })
+const usuariosDelete = async (req,res = response) => {
+
+    const {id} = req.params 
+    //fisicamente lo borramos
+    //const usuario = await Usuario.findByIdAndDelete(id)
+
+    const usuario = await Usuario.findByIdAndUpdate(id, {estado: false} )
+    res.json(usuario)
 }
 
 
