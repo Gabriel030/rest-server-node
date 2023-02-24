@@ -12,14 +12,15 @@ const usuariosGet = async (req = request,res = response ) => {
     //http://localhost:8080/api/usuarios/10
     //los obtengo desde el req.params
     //const {q = "sinNombre", page = 1, limit = 10} = req.query
-    const {limite = 5, desde = 0} = req.query
+    const {limite = 5 ,desde = 0} = req.query
 
    //emitir 2 solicitudes asincronas de manera concurrente
     const [usuarios, total] = await Promise.all([
-        Usuario.find({estado:true}),
-        Usuario.count({estado:true})
+        Usuario.find({estado:true})
                 .skip(Number(desde))
-                .limit(Number(limite))
+                .limit(+limite),
+        Usuario.count({estado:true})
+                
     ])
 
 
