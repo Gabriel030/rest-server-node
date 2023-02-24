@@ -1,5 +1,6 @@
 const { check } = require("express-validator");
 const { esRoleValido, emailExiste, existeUsuarioPorId } = require("./db-validators");
+const { tieneRole } = require("../middlewares/validar-roles");
 
 
 const postValidationList = [
@@ -20,13 +21,20 @@ const putValidationList = [
 ]
 
 const deleteValidationList = [
+    tieneRole("ADMIN_ROLE", "VENTAS_ROLE", "USER_ROLE"),
     check("id", "no es un id valido").isMongoId(),    
-    check("id").custom( existeUsuarioPorId), //esta es la forma mas larga
+    check("id").custom( existeUsuarioPorId), //esta es la forma mas larga,
+
 ]
 
+const loginValidationList = [
+    check("correo", "El correo es obligatorio").isEmail(),
+    check("password", "La contraseña es obligatoria").not().isEmpty(),
+]
 module.exports = {
     postValidationList,
     putValidationList,
     deleteValidationList,
+    loginValidationList
     
 }

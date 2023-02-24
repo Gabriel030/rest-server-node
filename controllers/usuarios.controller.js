@@ -51,7 +51,7 @@ const usuariosPost = async  (req,res = response) => {
     
 
     const {nombre, correo, password, rol} = req.body
-    const usuario = new Usuario({nombre, correo, password, rol})
+    const usuario = new Usuario({rol, nombre, correo, password})
 
     //verificar si el correo existe
     const existeEmail = await Usuario.findOne({correo});
@@ -78,9 +78,17 @@ const usuariosDelete = async (req,res = response) => {
     const {id} = req.params 
     //fisicamente lo borramos
     //const usuario = await Usuario.findByIdAndDelete(id)
-
+    const uid = req.uid; 
+    const userToDelete = await Usuario.findById(id)
+    if(userToDelete.estado === false){
+        return res.status(404).send({
+            msg:`el id: ${id} no esta en la BD`
+        })
+    }
     const usuario = await Usuario.findByIdAndUpdate(id, {estado: false} )
-    res.json(usuario)
+    usuario.estado = false;
+    const usuarioAutentiado = req.usuario
+    res.json({usuario, usuarioAutentiado})
 }
 
 
